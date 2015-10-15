@@ -1,20 +1,23 @@
 /*
- * Copyright (c) 2007 - 2014 Joseph Gaeddert
+ * Copyright (c) 2007 - 2015 Joseph Gaeddert
  *
- * This file is part of liquid.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * liquid is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * liquid is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with liquid.  If not, see <http://www.gnu.org/licenses/>.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 
 //
@@ -76,23 +79,23 @@ FIRINTERP() FIRINTERP(_create)(unsigned int _M,
     return q;
 }
 
-// create interpolator from prototype
+// create interpolator from Kaiser prototype
 //  _M      :   interpolation factor
 //  _m      :   symbol delay
 //  _As     :   stop-band attenuation [dB]
-FIRINTERP() FIRINTERP(_create_prototype)(unsigned int _M,
-                                         unsigned int _m,
-                                         float        _As)
+FIRINTERP() FIRINTERP(_create_kaiser)(unsigned int _M,
+                                      unsigned int _m,
+                                      float        _As)
 {
     // validate input
     if (_M < 2) {
-        fprintf(stderr,"error: firinterp_%s_create_prototype(), interp factor must be greater than 1\n", EXTENSION_FULL);
+        fprintf(stderr,"error: firinterp_%s_create_kaiser(), interp factor must be greater than 1\n", EXTENSION_FULL);
         exit(1);
     } else if (_m == 0) {
-        fprintf(stderr,"error: firinterp_%s_create_prototype(), filter delay must be greater than 0\n", EXTENSION_FULL);
+        fprintf(stderr,"error: firinterp_%s_create_kaiser(), filter delay must be greater than 0\n", EXTENSION_FULL);
         exit(1);
     } else if (_As < 0.0f) {
-        fprintf(stderr,"error: firinterp_%s_create_prototype(), stop-band attenuation must be positive\n", EXTENSION_FULL);
+        fprintf(stderr,"error: firinterp_%s_create_kaiser(), stop-band attenuation must be positive\n", EXTENSION_FULL);
         exit(1);
     }
 
@@ -112,79 +115,37 @@ FIRINTERP() FIRINTERP(_create_prototype)(unsigned int _M,
     return FIRINTERP(_create)(_M, hc, 2*_M*_m);
 }
 
-// create Nyquist interpolator
+// create prototype (root-)Nyquist interpolator
 //  _type   :   filter type (e.g. LIQUID_NYQUIST_RCOS)
 //  _k      :   samples/symbol,          _k > 1
 //  _m      :   filter delay (symbols),  _m > 0
 //  _beta   :   excess bandwidth factor, _beta < 1
 //  _dt     :   fractional sample delay, _dt in (-1, 1)
-FIRINTERP() FIRINTERP(_create_nyquist)(int          _type,
-                                       unsigned int _k,
-                                       unsigned int _m,
-                                       float        _beta,
-                                       float        _dt)
+FIRINTERP() FIRINTERP(_create_prototype)(int          _type,
+                                         unsigned int _k,
+                                         unsigned int _m,
+                                         float        _beta,
+                                         float        _dt)
 {
     // validate input
     if (_k < 2) {
-        fprintf(stderr,"error: firinterp_%s_create_nyquist(), interp factor must be greater than 1\n", EXTENSION_FULL);
+        fprintf(stderr,"error: firinterp_%s_create_prototype(), interp factor must be greater than 1\n", EXTENSION_FULL);
         exit(1);
     } else if (_m == 0) {
-        fprintf(stderr,"error: firinterp_%s_create_nyquist(), filter delay must be greater than 0\n", EXTENSION_FULL);
+        fprintf(stderr,"error: firinterp_%s_create_prototype(), filter delay must be greater than 0\n", EXTENSION_FULL);
         exit(1);
     } else if (_beta < 0.0f || _beta > 1.0f) {
-        fprintf(stderr,"error: firinterp_%s_create_nyquist(), filter excess bandwidth factor must be in [0,1]\n", EXTENSION_FULL);
+        fprintf(stderr,"error: firinterp_%s_create_prototype(), filter excess bandwidth factor must be in [0,1]\n", EXTENSION_FULL);
         exit(1);
     } else if (_dt < -1.0f || _dt > 1.0f) {
-        fprintf(stderr,"error: firinterp_%s_create_nyquist(), filter fractional sample delay must be in [-1,1]\n", EXTENSION_FULL);
+        fprintf(stderr,"error: firinterp_%s_create_prototype(), filter fractional sample delay must be in [-1,1]\n", EXTENSION_FULL);
         exit(1);
     }
 
     // generate Nyquist filter
     unsigned int h_len = 2*_k*_m + 1;
     float h[h_len];
-    liquid_firdes_nyquist(_type,_k,_m,_beta,_dt,h);
-
-    // copy coefficients to type-specific array (e.g. float complex)
-    unsigned int i;
-    TC hc[h_len];
-    for (i=0; i<h_len; i++)
-        hc[i] = h[i];
-
-    // return interpolator object
-    return FIRINTERP(_create)(_k, hc, h_len);
-}
-
-// create square-root Nyquist interpolator
-//  _type   :   filter type (e.g. LIQUID_RNYQUIST_RRC)
-//  _k      :   samples/symbol _k > 1
-//  _m      :   filter delay (symbols), _m > 0
-//  _beta   :   excess bandwidth factor, 0 < _beta < 1
-//  _dt     :   fractional sample delay, 0 <= _dt < 1
-FIRINTERP() FIRINTERP(_create_rnyquist)(int          _type,
-                                        unsigned int _k,
-                                        unsigned int _m,
-                                        float        _beta,
-                                        float        _dt)
-{
-    // validate input
-    if (_k < 2) {
-        fprintf(stderr,"error: firinterp_%s_create_rnyquist(), interp factor must be greater than 1\n", EXTENSION_FULL);
-        exit(1);
-    } else if (_m == 0) {
-        fprintf(stderr,"error: firinterp_%s_create_rnyquist(), filter delay must be greater than 0\n", EXTENSION_FULL);
-        exit(1);
-    } else if (_beta < 0.0f || _beta > 1.0f) {
-        fprintf(stderr,"error: firinterp_%s_create_rnyquist(), filter excess bandwidth factor must be in [0,1]\n", EXTENSION_FULL);
-        exit(1);
-    } else if (_dt < -1.0f || _dt > 1.0f) {
-        fprintf(stderr,"error: firinterp_%s_create_rnyquist(), filter fractional sample delay must be in [-1,1]\n", EXTENSION_FULL);
-        exit(1);
-    }
-
-    // generate square-root Nyquist filter
-    unsigned int h_len = 2*_k*_m + 1;
-    float h[h_len];
-    liquid_firdes_rnyquist(_type,_k,_m,_beta,_dt,h);
+    liquid_firdes_prototype(_type,_k,_m,_beta,_dt,h);
 
     // copy coefficients to type-specific array (e.g. float complex)
     unsigned int i;

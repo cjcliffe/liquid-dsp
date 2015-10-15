@@ -1,20 +1,23 @@
 /*
- * Copyright (c) 2007 - 2014 Joseph Gaeddert
+ * Copyright (c) 2007 - 2015 Joseph Gaeddert
  *
- * This file is part of liquid.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * liquid is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * liquid is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with liquid.  If not, see <http://www.gnu.org/licenses/>.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 
 //
@@ -74,7 +77,7 @@ unsigned int estimate_req_filter_len(float _df,
 // estimate filter stop-band attenuation given
 //  _df     :   transition bandwidth (0 < _b < 0.5)
 //  _N      :   filter length
-float estimate_req_filter_As(float _df,
+float estimate_req_filter_As(float        _df,
                              unsigned int _N)
 {
     // run search for stop-band attenuation which gives these results
@@ -112,9 +115,9 @@ float estimate_req_filter_As(float _df,
 }
 
 // estimate filter transition bandwidth given
-//  _As     :   stop-band attenuation [dB] (As > 0)
+//  _As     :   stop-band attenuation [dB], _As > 0
 //  _N      :   filter length
-float estimate_req_filter_df(float _As,
+float estimate_req_filter_df(float        _As,
                              unsigned int _N)
 {
     // run search for stop-band attenuation which gives these results
@@ -277,19 +280,19 @@ void liquid_firdes_kaiser(unsigned int _n,
     }
 }
 
-// Design Nyquist filter
-//  _type   : filter type (e.g. LIQUID_FIRFILT_RCOS)
+// Design (root-)Nyquist filter from prototype
+//  _type   : filter type (e.g. LIQUID_FIRFILT_RRRC)
 //  _k      : samples/symbol
 //  _m      : symbol delay
 //  _beta   : excess bandwidth factor, _beta in [0,1]
 //  _dt     : fractional sample delay
 //  _h      : output coefficient buffer (length: 2*k*m+1)
-void liquid_firdes_nyquist(liquid_firfilt_type _type,
-                           unsigned int        _k,
-                           unsigned int        _m,
-                           float               _beta,
-                           float               _dt,
-                           float *             _h)
+void liquid_firdes_prototype(liquid_firfilt_type _type,
+                             unsigned int        _k,
+                             unsigned int        _m,
+                             float               _beta,
+                             float               _dt,
+                             float *             _h)
 {
     // compute filter parameters
     unsigned int h_len = 2*_k*_m + 1;   // length
@@ -308,6 +311,9 @@ void liquid_firdes_nyquist(liquid_firfilt_type _type,
                                         LIQUID_FIRDESPM_FLATWEIGHT};
 
     switch (_type) {
+    
+    // Nyquist filter prototypes
+
     case LIQUID_FIRFILT_KAISER:
         liquid_firdes_kaiser(h_len, fc, As, _dt, _h);
         break;
@@ -327,28 +333,9 @@ void liquid_firdes_nyquist(liquid_firfilt_type _type,
     case LIQUID_FIRFILT_FARCSECH:
         liquid_firdes_farcsech(_k, _m, _beta, _dt, _h);
         break;
-    default:
-        fprintf(stderr,"error: liquid_firdes_nyquist(), invalid filter type '%d'\n", _type);
-        exit(1);
-    }
-}
 
+    // root-Nyquist filter prototypes
 
-// Design root-Nyquist filter
-//  _type   : filter type (e.g. LIQUID_FIRFILT_RRRC)
-//  _k      : samples/symbol
-//  _m      : symbol delay
-//  _beta   : excess bandwidth factor, _beta in [0,1]
-//  _dt     : fractional sample delay
-//  _h      : output coefficient buffer (length: 2*k*m+1)
-void liquid_firdes_rnyquist(liquid_firfilt_type _type,
-                            unsigned int        _k,
-                            unsigned int        _m,
-                            float               _beta,
-                            float               _dt,
-                            float *             _h)
-{
-    switch (_type) {
     case LIQUID_FIRFILT_ARKAISER:
         liquid_firdes_arkaiser(_k, _m, _beta, _dt, _h);
         break;
@@ -377,7 +364,7 @@ void liquid_firdes_rnyquist(liquid_firfilt_type _type,
         liquid_firdes_rfarcsech(_k, _m, _beta, _dt, _h);
         break;
     default:
-        fprintf(stderr,"error: liquid_firdes_rnyquist(), invalid root-Nyquist filter type '%d'\n", _type);
+        fprintf(stderr,"error: liquid_firdes_prototype(), invalid root-Nyquist filter type '%d'\n", _type);
         exit(1);
     }
 }
@@ -390,10 +377,10 @@ void liquid_firdes_rnyquist(liquid_firfilt_type _type,
 //  _theta  : LoS component angle of arrival
 //  _h      : output coefficient buffer
 void liquid_firdes_doppler(unsigned int _n,
-                          float _fd,
-                          float _K,
-                          float _theta,
-                          float *_h)
+                           float        _fd,
+                           float        _K,
+                           float        _theta,
+                           float *      _h)
 {
     float t, J, r, w;
     float beta = 4; // kaiser window parameter
@@ -403,7 +390,7 @@ void liquid_firdes_doppler(unsigned int _n,
         t = (float)i - (float)(_n-1)/2;
 
         // Bessel
-        J = 1.5*liquid_besselj0f(fabsf(2*M_PI*_fd*t));
+        J = 1.5*liquid_besselj0f(fabsf((float)(2*M_PI*_fd*t)));
 
         // Rice-K component
         r = 1.5*_K/(_K+1)*cosf(2*M_PI*_fd*t*cosf(_theta));
@@ -427,12 +414,12 @@ void liquid_firdes_doppler(unsigned int _n,
 //
 // Compute auto-correlation of filter at a specific lag.
 //
-//  _h      :   filter coefficients [size: _h_len]
+//  _h      :   filter coefficients [size: _h_len x 1]
 //  _h_len  :   filter length
 //  _lag    :   auto-correlation lag (samples)
-float liquid_filter_autocorr(float * _h,
+float liquid_filter_autocorr(float *      _h,
                              unsigned int _h_len,
-                             int _lag)
+                             int          _lag)
 {
     // auto-correlation is even symmetric
     _lag = abs(_lag);
@@ -458,11 +445,11 @@ float liquid_filter_autocorr(float * _h,
 //  _g      :   filter coefficients [size: _g_len]
 //  _g_len  :   filter length
 //  _lag    :   cross-correlation lag (samples)
-float liquid_filter_crosscorr(float * _h,
+float liquid_filter_crosscorr(float *      _h,
                               unsigned int _h_len,
-                              float * _g,
+                              float *      _g,
                               unsigned int _g_len,
-                              int _lag)
+                              int          _lag)
 {
     // cross-correlation is odd symmetric
     if (_h_len < _g_len) {
@@ -506,18 +493,18 @@ float liquid_filter_crosscorr(float * _h,
 // liquid_filter_isi()
 //
 // Compute inter-symbol interference (ISI)--both RMS and
-// maximum--for the square-root Nyquist filter _h.
+// maximum--for the filter _h.
 //
-//  _h      :   filter coefficients [size: 2*_k*_m+1]
+//  _h      :   filter coefficients [size: 2*_k*_m+1 x 1]
 //  _k      :   filter over-sampling rate (samples/symbol)
 //  _m      :   filter delay (symbols)
 //  _rms    :   output root mean-squared ISI
 //  _max    :   maximum ISI
-void liquid_filter_isi(float * _h,
+void liquid_filter_isi(float *      _h,
                        unsigned int _k,
                        unsigned int _m,
-                       float * _rms,
-                       float * _max)
+                       float *      _rms,
+                       float *      _max)
 {
     unsigned int h_len = 2*_k*_m+1;
 
@@ -550,9 +537,9 @@ void liquid_filter_isi(float * _h,
 //  _h_len  :   filter length
 //  _fc     :   analysis cut-off frequency
 //  _nfft   :   fft size
-float liquid_filter_energy(float * _h,
+float liquid_filter_energy(float *      _h,
                            unsigned int _h_len,
-                           float _fc,
+                           float        _fc,
                            unsigned int _nfft)
 {
     // validate input

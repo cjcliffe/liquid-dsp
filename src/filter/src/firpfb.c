@@ -1,20 +1,23 @@
 /*
- * Copyright (c) 2007 - 2014 Joseph Gaeddert
+ * Copyright (c) 2007 - 2015 Joseph Gaeddert
  *
- * This file is part of liquid.
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
  *
- * liquid is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
- * liquid is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with liquid.  If not, see <http://www.gnu.org/licenses/>.
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 
 //
@@ -33,6 +36,7 @@ struct FIRPFB(_s) {
 
     WINDOW() w;                 // window buffer
     DOTPROD() * dp;             // array of vector dot product objects
+    TC scale;                   // output scaling factor
 };
 
 // create firpfb from external coefficients
@@ -85,9 +89,52 @@ FIRPFB() FIRPFB(_create)(unsigned int _M,
     // create window buffer
     q->w = WINDOW(_create)(q->h_sub_len);
 
+    // set default scaling
+    q->scale = 1;
+
     // reset object and return
     FIRPFB(_reset)(q);
     return q;
+}
+
+// create firpfb from external coefficients
+//  _M      : number of filters in the bank
+//  _m      : filter semi-length [samples]
+//  _fc     : filter cut-off frequency 0 < _fc < 0.5
+//  _As     : filter stop-band suppression [dB]
+FIRPFB() FIRPFB(_create_kaiser)(unsigned int _M,
+                                unsigned int _m,
+                                float        _fc,
+                                float        _As)
+{
+    // validate input
+    if (_M == 0) {
+        fprintf(stderr,"error: firpfb_%s_create_kaiser(), number of filters must be greater than zero\n", EXTENSION_FULL);
+        exit(1);
+    } else if (_m == 0) {
+        fprintf(stderr,"error: firpfb_%s_create_kaiser(), filter delay must be greater than 0\n", EXTENSION_FULL);
+        exit(1);
+    } else if (_fc < 0.0f || _fc > 0.5f) {
+        fprintf(stderr,"error: firpfb_%s_create_kaiser(), filter cut-off frequence must be in (0,0.5)\n", EXTENSION_FULL);
+        exit(1);
+    } else if (_As < 0.0f) {
+        fprintf(stderr,"error: firpfb_%s_create_kaiser(), filter excess bandwidth factor must be in [0,1]\n", EXTENSION_FULL);
+        exit(1);
+    }
+
+    // generate square-root Nyquist filter
+    unsigned int H_len = 2*_M*_m + 1;
+    float Hf[H_len];
+    liquid_firdes_kaiser(H_len, _fc/(float)_M, _As, 0.0f, Hf);
+
+    // copy coefficients to type-specific array (e.g. float complex)
+    unsigned int i;
+    TC Hc[H_len];
+    for (i=0; i<H_len; i++)
+        Hc[i] = Hf[i];
+
+    // return filterbank object
+    return FIRPFB(_create)(_M, Hc, H_len);
 }
 
 // create square-root Nyquist filterbank
@@ -120,7 +167,7 @@ FIRPFB() FIRPFB(_create_rnyquist)(int          _type,
     // generate square-root Nyquist filter
     unsigned int H_len = 2*_M*_k*_m + 1;
     float Hf[H_len];
-    liquid_firdes_rnyquist(_type,_M*_k,_m,_beta,0,Hf);
+    liquid_firdes_prototype(_type,_M*_k,_m,_beta,0,Hf);
 
     // copy coefficients to type-specific array (e.g. float complex)
     unsigned int i;
@@ -162,7 +209,7 @@ FIRPFB() FIRPFB(_create_drnyquist)(int          _type,
     // generate square-root Nyquist filter
     unsigned int H_len = 2*_M*_k*_m + 1;
     float Hf[H_len];
-    liquid_firdes_rnyquist(_type,_M*_k,_m,_beta,0,Hf);
+    liquid_firdes_prototype(_type,_M*_k,_m,_beta,0,Hf);
     
     // compute derivative filter
     float dHf[H_len];
@@ -257,6 +304,13 @@ void FIRPFB(_reset)(FIRPFB() _q)
     WINDOW(_clear)(_q->w);
 }
 
+// set output scaling for filter
+void FIRPFB(_set_scale)(FIRPFB() _q,
+                         TC      _scale)
+{
+    _q->scale = _scale;
+}
+
 // push sample into firpfb internal buffer
 void FIRPFB(_push)(FIRPFB() _q, TI _x)
 {
@@ -268,9 +322,9 @@ void FIRPFB(_push)(FIRPFB() _q, TI _x)
 //  _q      : firpfb object
 //  _i      : index of filter to use
 //  _y      : pointer to output sample
-void FIRPFB(_execute)(FIRPFB() _q,
+void FIRPFB(_execute)(FIRPFB()     _q,
                       unsigned int _i,
-                      TO *_y)
+                      TO *         _y)
 {
     // validate input
     if (_i >= _q->num_filters) {
@@ -285,5 +339,8 @@ void FIRPFB(_execute)(FIRPFB() _q,
 
     // execute dot product
     DOTPROD(_execute)(_q->dp[_i], r, _y);
+
+    // apply scaling factor
+    *_y *= _q->scale;
 }
 

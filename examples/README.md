@@ -1,4 +1,4 @@
-
+a
 liquid-dsp examples
 ===================
 
@@ -84,6 +84,30 @@ This directory contains all the examples for interfacing the liquid modules.
     SEE ALSO: `bsequence_example.c`
               `msequence_example.c`
 
+ * `cpfskmodem_example.c`:
+
+ * `conversion_example.c`:
+    
+    This example demonstrates conversion from complex baseband to a real-valued
+    signal, and then down-conversion back to complex baseband while removing the
+    negative image.
+    
+     STEP 1: A signal is generated at complex baseband consisting of narrow-band
+             filtered noise and an offset tone (to show asymmetry in the transmit
+             spectrum).
+    
+     STEP 2: The signal is mixed up to a carrier 'fc' (relative to the sampling
+             frequency) and the real-component of the result is retained. This is
+             the DAC output. The spectrum of this signal has two images: one at
+             +fc, the other at -fc.
+    
+     STEP 3: The DAC output is mixed back down to complex baseband and the lower
+             image is (mostly) filtered off. Reminants of the lower frequency
+             component are still visible due to the wide-band and low-order
+             filter on the receiver. The received complex baseband signal also
+             has a reduction in power by 2 because half the signal's energy (the
+             negative image) is filtered off.
+    
  * `crc_example.c`:
     Cyclic redundancy check (CRC) example.  This example demonstrates how a
     CRC can be used to validate data received through un-reliable means (e.g.
@@ -114,6 +138,12 @@ This directory contains all the examples for interfacing the liquid modules.
     scheme or its underlying data set. The error estimate assumes a
     constant modulus linear modulation scheme. This works surprisingly
     well even more amplitude-modulated signals, e.g. 'qam16'.
+
+ * `eqlms_cccf_block_example.c`:
+    This example tests the least mean-squares (LMS) equalizer (EQ) on a
+    signal with an unknown modulation and carrier frequency offset.
+    Equalization is performed blind on a block of samples and the reulting
+    constellation is output to a file for plotting.
 
  * `eqlms_cccf_decisiondirected_example.c`:
     Tests least mean-squares (LMS) equalizer (EQ) on a signal with a known
@@ -188,6 +218,11 @@ This directory contains all the examples for interfacing the liquid modules.
  * `firfarrow_rrrf_sine_example.c`:
 
  * `firfilt_rrrf_example.c`:
+
+ * `firfilt_cccf_example.c`:
+    This example demonstrates the finite impulse response (FIR) filter
+    with complex coefficients as a cross-correlator between transmitted
+    and received sequences.
 
  * `firfilt_crcf_example.c`:
     Complex finite impulse response filter example. Demonstrates the 
@@ -278,6 +313,11 @@ This directory contains all the examples for interfacing the liquid modules.
 
  * `freqmodem_example.c`:
 
+ * `fskmodem_example.c`:
+    This example demostrates the M-ary frequency-shift keying
+    (MFSK) modem in liquid. A message signal is modulated and the
+    resulting signal is recovered using a demodulator object.
+
  * `gasearch_example.c`:
 
  * `gasearch_knapsack_example.c`:
@@ -345,7 +385,12 @@ This directory contains all the examples for interfacing the liquid modules.
  * `interleaver_soft_example.c`:
 
  * `kbd_window_example.c`:
+
  * `lpc_example.c`:
+    This example demonstrates linear prediction in liquid. An input signal
+    is generated which exhibits a strong temporal correlation. The linear
+    predictor generates an approximating all-pole filter which minimizes
+    the squared error between the prediction and the actual output.
 
  * `matched_filter_example.c`:
 
@@ -385,6 +430,10 @@ This directory contains all the examples for interfacing the liquid modules.
     except at index zero, where the sequences align.
 
     SEE ALSO: `bsequence_example.c`
+
+ * `msourcecf_example.c`:
+    This example demonstrates generating multiple signal sources simultaneously
+    for testing using the msource (multi-source) family of objects.
 
  * `msresamp_crcf_example.c`:
     Demonstration of the multi-stage arbitrary resampler.
@@ -458,7 +507,20 @@ This directory contains all the examples for interfacing the liquid modules.
 
     SEE ALSO: `polyfit_example.c`
 
+ * `qdetector_cccf_example.c`:
+    This example demonstrates the functionality of the qdetector object
+    to detect an arbitrary signal in time in the presence of noise,
+    carrier frequency/phase offsets, and fractional-sample timing
+    offsets.
+
+ * `qpacketmodem_example.c`:
+    This example demonstrates the basic packet modem encoder/decoder
+    operation. A packet of data is encoded and modulated into symbols,
+    channel noise is added, and the resulting packet is demodulated
+    and decoded.
+
  * `qnsearch_example.c`:
+
  * `quantize_example.c`:
 
  * `random_histogram_example.c`:
@@ -472,6 +534,21 @@ This directory contains all the examples for interfacing the liquid modules.
     in the input is 9 and not evenly divisible by 2, the last of the 5
     output symbols has a zero explicitly padded to the end.
 
+  * `resamp2_cccf_example.c`
+    This example demonstrates the halfband resampler cenetered at the
+    quarter sample rate to split the signal into positive and negative
+    frequency bands. Two distinct narrow-band signals are generated; one
+    at a positive frequency and one at a negative frequency. The resamp2
+    object is run as a filter to separate the two about the zero-
+    frequency center point.
+
+ * `resamp2_crcf_example.c`:
+    This example demonstrates the halfband resampler running as both an
+    interpolator and a decimator. A narrow-band signal is first
+    interpolated by a factor of 2, and then decimated. The resulting RMS
+     error between the final signal and original is computed and printed
+    to the screen.
+
  * `resamp2_crcf_decim_example.c`:
     Halfband decimator.  This example demonstrates the interface to the
     decimating halfband resampler.  A low-frequency input sinusoid is
@@ -480,13 +557,6 @@ This directory contains all the examples for interfacing the liquid modules.
 
     SEE ALSO: `resamp2_crcf_interp_example.c`
               `decim_rrrf_example.c`
-
- * `resamp2_crcf_example.c`:
-    This example demonstrates the halfband resampler running as both an
-    interpolator and a decimator. A narrow-band signal is first
-    interpolated by a factor of 2, and then decimated. The resulting RMS
-     error between the final signal and original is computed and printed
-    to the screen.
 
  * `resamp2_crcf_filter_example.c`:
     Halfband (two-channel) filterbank example. This example demonstrates
@@ -527,6 +597,30 @@ This directory contains all the examples for interfacing the liquid modules.
    Spectral periodogram example with real inputs.
 
  * `symsync_crcf_example.c`:
+    This example demonstrates the basic principles of the symbol timing
+    recovery family of objects, specifically symsync_crcf. A set of random
+    QPSK symbols are generated and interpolated with a timing offset. The
+    resulting signal is run through the symsync_crcf object which applies a
+    matched filter and recovers timing producing a clean constellation.
+
+ * `symsync_crcf_full_example.c`:
+    This example extends that of `symsync_crcf_example.c` by including options
+    for simulating a timing rate offset in addition to just a timing phase
+    error. The resulting output file shows not just the constellation but the
+    time domain sequence as well as the timing phase estimate over time.
+
+ * `symsync_crcf_kaiser_example.c`:
+    This is a simplified example of the symync family of objects to show how
+    symbol timing can be recovered after the matched filter output.
+
+  * `symtrack_cccf_example.c`:
+    
+    This example demonstrates how to recover data symbols using the symtrack
+    object. A stream of modulated and interpolated symbols are generated using
+    the symstream object. The resulting samples are passed through a channel
+    to add various impairments. The symtrack object recovers timing, carrier,
+    and other information imparted by the channel and returns data symbols
+    ready for demodulation.
 
  * `wdelayf_example.c`:
 
