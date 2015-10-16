@@ -5724,6 +5724,13 @@ FIRPFBCH2() FIRPFBCH2(_create_kaiser)(int          _type,       \
                                       unsigned int _m,          \
                                       float        _As);        \
                                                                 \
+/* set firbfpch2 channel state */                               \
+/*  _M      :   channel to set                              */  \
+/*  _s      :   state value, 0=off, 1=on (default on)       */  \
+void FIRPFBCH2(_set_channel_state)(FIRPFBCH2() _q,              \
+                                      unsigned int _M,          \
+                                      unsigned int _s);         \
+                                                                \
 /* destroy firpfbch2 object, freeing internal memory        */  \
 void FIRPFBCH2(_destroy)(FIRPFBCH2() _q);                       \
                                                                 \

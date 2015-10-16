@@ -38,6 +38,7 @@ struct FIRPFBCH2(_s) {
     unsigned int M;     // number of channels
     unsigned int M2;    // number of channels/2
     unsigned int m;     // filter semi-length
+    unsigned int *cs;   // channel state (0 = off, 1 = on, more options via bit flags?)
 
     // filter
     unsigned int h_len; // prototype filter length: 2*M*m
@@ -122,6 +123,12 @@ FIRPFBCH2() FIRPFBCH2(_create)(int          _type,
         q->w1[i] = WINDOW(_create)(h_sub_len);
     }
 
+    // create channel state flags
+    q->cs = malloc((q->M)*sizeof(unsigned int));
+    for (i=0; i<q->M; i++) {
+        q->cs[i] = 1;
+    }
+    
     // reset filterbank object and return
     FIRPFBCH2(_reset)(q);
     return q;
@@ -182,6 +189,17 @@ FIRPFBCH2() FIRPFBCH2(_create_kaiser)(int          _type,
     return q;
 }
 
+// set firpfbch2 channel state
+void FIRPFBCH2(_set_channel_state)(FIRPFBCH2() _q,
+                         unsigned int _M,
+                         unsigned int _s)
+{
+    if (_M > (_q->M-1))
+        return;
+    
+    _q->cs[_M] = _s;
+}
+
 // destroy firpfbch2 object, freeing internal memory
 void FIRPFBCH2(_destroy)(FIRPFBCH2() _q)
 {
@@ -205,6 +223,9 @@ void FIRPFBCH2(_destroy)(FIRPFBCH2() _q)
     free(_q->w0);
     free(_q->w1);
 
+    // free channel state memory
+    free(_q->cs);
+
     // free main object memory
     free(_q);
 }
@@ -218,6 +239,7 @@ void FIRPFBCH2(_reset)(FIRPFBCH2() _q)
     for (i=0; i<_q->M; i++) {
         WINDOW(_clear)(_q->w0[i]);
         WINDOW(_clear)(_q->w1[i]);
+        _q->cs[i] = 1;
     }
 
     // reset filter/buffer alignment flag
@@ -263,6 +285,11 @@ void FIRPFBCH2(_execute_analyzer)(FIRPFBCH2() _q,
         // compute buffer index
         unsigned int buffer_index  = (offset+i)%(_q->M);
 
+        // handle channel state
+        if (!_q->cs[i]) {
+            _q->X[buffer_index] = 0;
+            continue;
+        }        
         // read buffer at index
         WINDOW(_read)(_q->w0[buffer_index], &r);
 
@@ -315,6 +342,10 @@ void FIRPFBCH2(_execute_synthesizer)(FIRPFBCH2() _q,
     for (i=0; i<_q->M2; i++) {
         // buffer index
         unsigned int b = (_q->flag == 0) ? i : i+_q->M2;
+
+        // handle channel state
+        if (!_q->cs[i])
+            continue;
 
         // read buffer with index offset
         WINDOW(_read)(_q->w0[b], &r0);
